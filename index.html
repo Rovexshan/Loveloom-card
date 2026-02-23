@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>For You | LoveLoom Style</title>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Poppins:wght@300;400&display=swap" rel="stylesheet">
+
+<style>
+:root { --pink: #ff4d6d; }
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+    overflow:hidden;
+    background:linear-gradient(45deg,#ff9a9e 0%,#fad0c4 99%,#fad0c4 100%);
+    font-family:'Poppins',sans-serif;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+#bg-canvas { position:fixed; top:0; left:0; z-index:1; pointer-events:none; }
+
+.card-container {
+    position:relative;
+    z-index:10;
+    width:90%;
+    max-width:450px;
+    perspective:1000px;
+}
+
+.glass-card {
+    background:rgba(255,255,255,0.15);
+    backdrop-filter:blur(15px);
+    -webkit-backdrop-filter:blur(15px);
+    border:1px solid rgba(255,255,255,0.3);
+    border-radius:30px;
+    padding:40px;
+    text-align:center;
+    box-shadow:0 15px 35px rgba(0,0,0,0.1);
+    animation:floatCard 4s ease-in-out infinite;
+}
+
+@keyframes floatCard {
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(-15px);}
+}
+
+h1 {
+    font-family:'Dancing Script',cursive;
+    font-size:3rem;
+    color:white;
+    margin-bottom:15px;
+    text-shadow:2px 2px 4px rgba(0,0,0,0.1);
+}
+
+p {
+    color:white;
+    font-size:1.1rem;
+    line-height:1.6;
+    margin-bottom:25px;
+    min-height:100px;
+}
+
+.btn {
+    background:white;
+    color:var(--pink);
+    border:none;
+    padding:12px 30px;
+    border-radius:50px;
+    font-weight:600;
+    cursor:pointer;
+    transition:0.3s all;
+    box-shadow:0 5px 15px rgba(0,0,0,0.1);
+    text-transform:uppercase;
+    letter-spacing:1px;
+}
+
+.btn:hover {
+    transform:scale(1.05);
+    background:var(--pink);
+    color:white;
+}
+
+.music-control {
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    z-index:100;
+    background:white;
+    width:45px;
+    height:45px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    box-shadow:0 4px 10px rgba(0,0,0,0.1);
+}
+
+@keyframes spin {
+    0%{transform:rotate(0deg);}
+    100%{transform:rotate(360deg);}
+}
+
+.music-control.spinning { animation:spin 2s linear infinite; }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<div class="card-container">
+    <div class="glass-card">
+        <h1>Dear Wifey</h1>
+        <p id="typed-text"></p>
+        <button class="btn" onclick="revealSecret()">Open Message</button>
+    </div>
+</div>
+
+<div class="music-control" onclick="toggleMusic()">🎵</div>
+
+<audio id="love-song" loop>
+    <source src="assets/love.mp3" type="audio/mpeg">
+</audio>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ----------------- 3D Hearts Background -----------------
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bg-canvas'), alpha:true, antialias:true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+
+const heartShape = new THREE.Shape();
+heartShape.moveTo(25,25);
+heartShape.bezierCurveTo(25,25,20,0,0,0);
+heartShape.bezierCurveTo(-30,0,-30,35,-30,35);
+heartShape.bezierCurveTo(-30,55,-10,77,25,95);
+heartShape.bezierCurveTo(60,77,80,55,80,35);
+heartShape.bezierCurveTo(80,35,80,0,50,0);
+heartShape.bezierCurveTo(35,0,25,25,25,25);
+
+const geometry = new THREE.ExtrudeGeometry(heartShape, { depth:8, bevelEnabled:true, bevelThickness:2, bevelSize:4 });
+const material = new THREE.MeshPhongMaterial({ color:0xff4d6d });
+
+const hearts = [];
+for(let i=0;i<40;i++){
+    const heart = new THREE.Mesh(geometry, material);
+    heart.position.set((Math.random()-0.5)*800, (Math.random()-0.5)*800, (Math.random()-0.5)*400);
+    heart.scale.set(0.2,0.2,0.2);
+    heart.rotation.x=Math.PI;
+    scene.add(heart);
+    hearts.push(heart);
+}
+
+const ambientLight = new THREE.AmbientLight(0xffffff,0.7);
+scene.add(ambientLight);
+const pointLight = new THREE.PointLight(0xffffff,0.8);
+pointLight.position.set(100,100,100);
+scene.add(pointLight);
+
+camera.position.z=300;
+
+function animate(){
+    requestAnimationFrame(animate);
+    hearts.forEach(h=>{
+        h.rotation.y+=0.01;
+        h.position.y+=0.5;
+        if(h.position.y>400) h.position.y=-400;
+    });
+    renderer.render(scene,camera);
+}
+animate();
+
+// ----------------- Typewriter Effect -----------------
+const textElement = document.getElementById('typed-text');
+const message = "Every moment with you is like a beautiful dream come true. You make the world brighter just by being in it. ❤️";
+let index = 0;
+
+function typeWriter(){
+    if(index<message.length){
+        textElement.innerHTML += message.charAt(index);
+        index++;
+        setTimeout(typeWriter,50);
+    }
+}
+typeWriter();
+
+// ----------------- Reveal Secret -----------------
+function revealSecret(){
+    const secretMessage = `
+        My love, just like that song says, I want you to know with all my heart — 
+        <b>hindi ako mawawala sa tabi mo</b>. I promise that no matter what comes, I will never disappear, never grow tired of loving you, and I will always choose you. You are my one and only star in my eyes, and I’ll be here loving you through every moment of our life together. ❤️
+    `;
+    
+    // Insert the message all at once
+    textElement.innerHTML = secretMessage;
+
+    // Optional: make hearts spin
+    hearts.forEach(h => h.rotation.y += 2);
+
+    // Play music if not already playing
+    if(!isPlaying) toggleMusic();
+}
+
+// ----------------- Music Control -----------------
+const music = document.getElementById('love-song');
+let isPlaying=false;
+
+function toggleMusic(){
+    const btn=document.querySelector('.music-control');
+    if(isPlaying){
+        music.pause();
+        btn.classList.remove('spinning');
+    } else {
+        music.play().catch(()=>{});
+        btn.classList.add('spinning');
+    }
+    isPlaying=!isPlaying;
+}
+
+// ----------------- Responsive -----------------
+window.addEventListener('resize',()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth,window.innerHeight);
+});
+</script>
+</body>
+</html>
